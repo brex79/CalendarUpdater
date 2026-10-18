@@ -1,0 +1,10 @@
+{
+	"host":"imap.mailbox.org",
+	"port":"993",
+	"username":"carlobressan@mailbox.org",
+	"password":"vm@/!d2E37%F72f",
+	"mittente":"carlo.bressan@siav.it",
+	"oggetto":"[SIAV] Modifica evento",
+	"pathCalendar": "https://dav.mailbox.org/caldav/Y2FsOi8vMC80NQ",
+	"folderToMove": "INBOX/Siav/Siav_Eventi"
+}
