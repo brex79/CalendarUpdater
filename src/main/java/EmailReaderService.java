@@ -35,12 +35,12 @@ public class EmailReaderService {
 		
 		// data di oggi
 		Date dataRicerca = new Date();
-		SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
+		// SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
  
         try {
         	
         	// Data ricerca
-        	dataRicerca = dateFormatter.parse("15/10/2026");
+        	// dataRicerca = dateFormatter.parse("15/10/2026");
         	
         	// Carica le configurazioni
         	AppConfig configFile = ConfigLoader.loadConfig();
@@ -100,7 +100,7 @@ public class EmailReaderService {
                 // Data fine evento
                 LocalDateTime localFine = LocalDateTime.parse(stArr[2].toString().substring(6).trim(), formatter);
                 dataFine = localFine.atZone(ZoneId.of("Europe/Rome"));
-                System.out.println("Evento inizio: " + stArr[2].toString());
+                System.out.println("Evento fine: " + stArr[2].toString());
                 
                 ZonedDateTime inizioRicerca = ZonedDateTime.now();
                 ZonedDateTime fineRicerca = inizioRicerca.plusMonths(6);
@@ -172,9 +172,6 @@ public class EmailReaderService {
                 
                 /***************************************************
                 TODO
-                - controllare anche aggiornamento eventi >> problema evento già creato
-                - spostare la mail e impostarla come letta
-                - testare tutto - 
             	- pensare di inserire come eventi anche appuntamenti miei personali legati 
             	   al lavoro in modo che mi compaiano nel calendario usando la stessa logica
             	   degli eventi pianificati e gestiti qui
