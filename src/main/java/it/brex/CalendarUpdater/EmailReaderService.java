@@ -1,3 +1,5 @@
+package it.brex.CalendarUpdater;
+
 import jakarta.mail.*;
 import jakarta.mail.search.*;
 import java.io.IOException;
@@ -9,12 +11,16 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
 import biweekly.component.VEvent;
+
+
 
 public class EmailReaderService {
 	
@@ -35,12 +41,12 @@ public class EmailReaderService {
 		
 		// data di oggi
 		Date dataRicerca = new Date();
-		// SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
+		//SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
  
         try {
         	
         	// Data ricerca
-        	// dataRicerca = dateFormatter.parse("15/10/2026");
+        	//dataRicerca = dateFormatter.parse("20/10/2026");
         	
         	// Carica le configurazioni
         	AppConfig configFile = ConfigLoader.loadConfig();
@@ -250,6 +256,34 @@ public class EmailReaderService {
                 // Nessun filtro specificato: recupera tutti i messaggi
                 messaggi = inbox.getMessages();
             }
+            
+            // Ordina l'array per data di ricezione (dal più vecchio al più recente)
+            Arrays.sort(messaggi, new Comparator<Message>() {
+                @Override
+                public int compare(Message m1, Message m2) {
+                    try {
+                        Date date1 = m1.getReceivedDate();
+                        Date date2 = m2.getReceivedDate();
+                        
+                        // Fallback sulla data di invio se la data di ricezione è null
+                        if (date1 == null) date1 = m1.getSentDate();
+                        if (date2 == null) date2 = m2.getSentDate();
+                        
+                        // Gestione di sicurezza per eventuali date ancora null
+                        if (date1 == null && date2 == null) return 0;
+                        if (date1 == null) return 1;  // i null vanno alla fine
+                        if (date2 == null) return -1;
+                        
+                        // .compareTo() per ordine crescente (dal più vecchio al più recente)
+                        return date1.compareTo(date2);
+                        
+                    } catch (MessagingException e) {
+                        // Gestione dell'eccezione nel comparatore
+                        e.printStackTrace();
+                        return 0;
+                    }
+                }
+            });
 
             // Legge ed estrae le informazioni dalle mail filtrate
             for (Message msg : messaggi) {
@@ -374,7 +408,7 @@ public class EmailReaderService {
 	        Folder currentFolder = message.getFolder();
 	        
 	        // Controllo se la cartella è aperta
-	        if (!currentFolder.isOpen()) {
+	        if (!currentFolder.isOpen() && message.getMessageNumber() > 0) {
 	            currentFolder.open(Folder.READ_WRITE);
 	        }
 	    	

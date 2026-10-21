@@ -1,3 +1,5 @@
+package it.brex.CalendarUpdater;
+
 import java.util.Date;
 
 import jakarta.mail.Message;

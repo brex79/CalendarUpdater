@@ -1,4 +1,6 @@
-/home/pot/workspace/java/CalendarUpdater/src/main/java/AppConfig.java
-/home/pot/workspace/java/CalendarUpdater/src/main/java/ConfigLoader.java
-/home/pot/workspace/java/CalendarUpdater/src/main/java/EmailDettaglio.java
-/home/pot/workspace/java/CalendarUpdater/src/main/java/EmailReaderService.java
+/home/pot/workspace/java/CalendarUpdater/src/main/java/it/brex/CalendarUpdater/AppConfig.java
+/home/pot/workspace/java/CalendarUpdater/src/main/java/it/brex/CalendarUpdater/CalendarService.java
+/home/pot/workspace/java/CalendarUpdater/src/main/java/it/brex/CalendarUpdater/ConfigLoader.java
+/home/pot/workspace/java/CalendarUpdater/src/main/java/it/brex/CalendarUpdater/EmailDettaglio.java
+/home/pot/workspace/java/CalendarUpdater/src/main/java/it/brex/CalendarUpdater/EmailReaderService.java
+/home/pot/workspace/java/CalendarUpdater/src/main/java/it/brex/CalendarUpdater/EventoDettaglio.java

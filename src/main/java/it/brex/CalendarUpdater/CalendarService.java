@@ -1,3 +1,5 @@
+package it.brex.CalendarUpdater;
+
 import biweekly.Biweekly;
 import biweekly.ICalendar;
 import biweekly.component.VEvent;

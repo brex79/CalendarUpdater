@@ -1,4 +1,7 @@
-AppConfig.class
-EmailReaderService.class
-ConfigLoader.class
-EmailDettaglio.class
+it/brex/CalendarUpdater/ConfigLoader.class
+it/brex/CalendarUpdater/EmailReaderService.class
+it/brex/CalendarUpdater/EventoDettaglio.class
+it/brex/CalendarUpdater/EmailReaderService$1.class
+it/brex/CalendarUpdater/AppConfig.class
+it/brex/CalendarUpdater/CalendarService.class
+it/brex/CalendarUpdater/EmailDettaglio.class
