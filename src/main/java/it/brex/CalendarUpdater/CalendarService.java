@@ -168,7 +168,11 @@ public class CalendarService {
      */
     public boolean aggiornaEvento(
     		AppConfig configFile,
-    		EventoDettaglio evento) {
+    		EventoDettaglio evento,
+    		String logs) {
+    	
+    	logs = logs + " > aggiornaEvento";
+    	System.err.println(logs + " > Inizio");
     	
     	boolean ret = false;
         boolean isNew = (evento.getUid() == null || evento.getUid().trim().isEmpty());
@@ -202,7 +206,9 @@ public class CalendarService {
         String icsPayload = Biweekly.write(ical).go();
 
         // 2. Invio dei dati al server CalDAV tramite HTTP PUT
-        ret = sendCalDavRequest(configFile, evento.getUid(), icsPayload);
+        ret = sendCalDavRequest(configFile, evento.getUid(), icsPayload, logs);
+        
+        System.err.println(logs + " > Fine");
         
         return ret;
     }
@@ -210,11 +216,16 @@ public class CalendarService {
     private boolean sendCalDavRequest(
     		AppConfig configFile,
     		String uid, 
-    		String icsPayload) {
+    		String icsPayload,
+    		String logs) {
     	
     	boolean ret = false;
     	
         try {
+        	
+        	logs = logs + " > sendCalDavRequest";
+        	System.err.println(logs + " > Inizio");
+        	
             // CORRETTO: Unisce l'URL del calendario di mailbox.org con lo UID dell'evento
             // Esempio finale: https://dav.mailbox.org/caldav/Y2FsOi8vfsd45w/mio-uid-univoco.ics
             String eventUrl = configFile.pathCalendar().endsWith("/") 
@@ -249,6 +260,8 @@ public class CalendarService {
             System.err.println("Errore di connessione: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        System.err.println(logs + " > Fine");
         
         return ret;
     }

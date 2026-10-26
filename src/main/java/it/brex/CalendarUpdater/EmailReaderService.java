@@ -39,14 +39,19 @@ public class EmailReaderService {
 		ZonedDateTime dataInizio;
 		ZonedDateTime dataFine;
 		
-		// data di oggi
-		Date dataRicerca = new Date();
-		//SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
+		// Data Formatter
+		SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
+		
+		// Stringa di log
+		String logs = "EmailReaderService > Main";
  
         try {
         	
+        	System.err.println(logs + " > Inizio");
+        	
         	// Data ricerca
-        	//dataRicerca = dateFormatter.parse("20/10/2026");
+    		Date dataRicerca = new Date();
+        	// dataRicerca = dateFormatter.parse("26/10/2026");
         	
         	// Carica le configurazioni
         	AppConfig configFile = ConfigLoader.loadConfig();
@@ -145,7 +150,7 @@ public class EmailReaderService {
                 	evento.setSequence(evento.getSequence() + 1);
                 	
                 	// Aggiorna evento esistente
-                	bInserito = calendar.aggiornaEvento(configFile, evento);
+                	bInserito = calendar.aggiornaEvento(configFile, evento, logs);
 				}
                 
                 // Inserisce se è un evento nuovo
@@ -163,7 +168,7 @@ public class EmailReaderService {
                 			null);
                 	
                 	// Inserimento a calendario
-                	bInserito = calendar.aggiornaEvento(configFile, evento);
+                	bInserito = calendar.aggiornaEvento(configFile, evento, logs);
 					/*
 					 * if (calendar.aggiornaEvento(configFile, evento)) {
 					 * System.out.println("Evento " + evento.getTitolo() +
@@ -173,7 +178,7 @@ public class EmailReaderService {
                 
                 // Email imposta come letta e sposta in cartella lavorati
                 if (bInserito) {
-                	service.segnaEmailComeLettaESposta(configFile, email.msg());
+                	service.segnaEmailComeLettaESposta(configFile, email.msg(), logs);
 				}
                 
                 /***************************************************
@@ -188,6 +193,8 @@ public class EmailReaderService {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+        
+        System.err.println(logs + " > Fine");
         
 	}
 
@@ -373,6 +380,133 @@ public class EmailReaderService {
     
     /**
      * Segna un messaggio come letto e lo sposta in una cartella di destinazione.
+     * 
+     * @param configFile
+     * @param message
+     * @param logs
+     * @return
+     * @throws MessagingException
+     */
+    public boolean segnaEmailComeLettaESposta(
+            AppConfig configFile,
+            Message message,
+            String logs) throws MessagingException {
+        
+        boolean ret = false;
+        
+        logs += " > segnaEmailComeLettaESposta";
+        System.out.println(logs + " > Inizio");
+        
+        Properties props = new Properties();
+        props.put("mail.store.protocol", "imaps");
+        props.put("mail.imaps.host", configFile.host());
+        props.put("mail.imaps.port", configFile.port());
+        props.put("mail.imaps.ssl.enable", "true");
+
+        Session session = Session.getInstance(props);
+        Store store = null;
+        
+        // Dichiariamo le cartelle fuori dal try per poterle chiudere nel finally se necessario
+        Folder currentFolder = null;
+        Folder targetFolder = null;
+        
+        try {
+            store = session.getStore("imaps");
+            store.connect(
+                    configFile.host(), 
+                    configFile.username(), 
+                    configFile.password());
+            
+            // 1. NON usare message.getFolder() direttamente se appartiene a un'altra sessione/store.
+            // Ottieniamo invece il nome della cartella d'origine dal vecchio messaggio:
+            String originalFolderName = message.getFolder().getFullName();
+            
+            // Apriamo la cartella di origine sul NUOVO store
+            currentFolder = store.getFolder(originalFolderName);
+            if (!currentFolder.isOpen()) {
+                currentFolder.open(Folder.READ_WRITE);
+            }
+            
+            // 2. Poiché il numero di messaggio (MessageNumber) potrebbe cambiare tra una connessione e l'altra,
+            // il modo più sicuro per trovare lo stesso identico messaggio in questa nuova connessione 
+            // è usare l'UID (se il server supporta IMAP UID, come quasi tutti) oppure il Message-ID.
+            // Se UIDFolder è supportato (standard IMAP moderno):
+            Message targetMessage = null;
+            if (currentFolder instanceof jakarta.mail.UIDFolder) {
+                jakarta.mail.UIDFolder uf = (jakarta.mail.UIDFolder) currentFolder;
+                // Nota: per fare questo, nel metodo che ha letto la mail devi salvarti l'UID con uf.getUID(message)
+                // Se non hai l'UID, ripieghiamo sul messageNumber ammesso che la cartella sia la stessa istanza.
+            }
+            
+            // Soluzione pragmatica se la cartella viene aperta contestualmente: 
+            // Se il messageNumber è > نيك0, prenderlo direttamente dalla cartella appena aperta di questo store:
+            int msgNum = message.getMessageNumber();
+            if (msgNum <= 0 || msgNum > currentFolder.getMessageCount()) {
+                throw new IllegalArgumentException("Numero messaggio non valido nella nuova sessione IMAP.");
+            }
+            Message freshMessage = currentFolder.getMessage(msgNum);
+            
+            // 3. Segna la mail come letta sul messaggio "fresco" legato a questo store
+            freshMessage.setFlag(Flags.Flag.SEEN, true);
+            System.out.println("Messaggio segnato come letto.");
+
+            // 4. Gestione cartella di destinazione
+            targetFolder = store.getFolder(configFile.folderToMove());
+            if (!targetFolder.exists()) {
+                System.err.println("Cartella non trovata: " + configFile.folderToMove());
+            }
+            
+            if (!targetFolder.isOpen()) {
+                targetFolder.open(Folder.READ_WRITE);
+            }
+
+            // 5. Copia il messaggio
+            currentFolder.copyMessages(new Message[]{ freshMessage }, targetFolder);
+            System.out.println("Messaggio copiato nella cartella: " + configFile.folderToMove());
+
+            // 6. Segna come eliminato
+            freshMessage.setFlag(Flags.Flag.DELETED, true);
+            
+            // Chiusura pulita cartella destinazione
+            targetFolder.close(false);
+            targetFolder = null; // Evitiamo doppi rilasci nel finally
+
+            // Espunge i messaggi eliminati dalla cartella corrente
+            currentFolder.expunge();
+            
+            ret = true;
+        } 
+        catch (Exception ex) {
+            System.out.println("ERRORE: " + ex.getMessage());
+            ex.printStackTrace(); // Utile per debuggare eventuali stacktrace completi
+        }
+        finally {
+            // Pulizia sicura delle risorse per evitare leak di connessioni
+            try {
+                if (currentFolder != null && currentFolder.isOpen()) {
+                    currentFolder.close(false);
+                }
+            } catch (Exception e) { /* ignora */ }
+            
+            try {
+                if (targetFolder != null && targetFolder.isOpen()) {
+                    targetFolder.close(false);
+                }
+            } catch (Exception e) { /* ignora */ }
+
+            if (store != null && store.isConnected()) {
+                try {
+                    store.close();
+                } catch (Exception e) { /* ignora */ }
+            }	    }
+        
+        System.out.println(logs + " > Fine");
+        return ret;
+    }
+    
+    
+    /**
+     * Segna un messaggio come letto e lo sposta in una cartella di destinazione.
      *
      * @param message          Il messaggio trovato da elaborare
      * @param currentFolder    La cartella corrente in cui si trova il messaggio (deve essere aperta in READ_WRITE)
@@ -380,11 +514,15 @@ public class EmailReaderService {
      * @param targetFolderName Il nome della cartella di destinazione (es. "Archivio" o "INBOX.Archivio")
      * @throws MessagingException In caso di errori con il server di posta
      */
-    public boolean segnaEmailComeLettaESposta(
+    public boolean segnaEmailComeLettaESposta_OLD(
     		AppConfig configFile,
-    		Message message) throws MessagingException {
+    		Message message,
+    		String logs) throws MessagingException {
     	
     	boolean ret = false;
+    	
+    	logs += " > segnaEmailComeLettaESposta";
+    	System.out.println(logs + " > Inizio");
     	
         Properties props = new Properties();
         props.put("mail.store.protocol", "imaps");
@@ -462,6 +600,7 @@ public class EmailReaderService {
 	        }	        
 	    }
         
+        System.out.println(logs + " > Fine");
         return ret;
     }    
     
