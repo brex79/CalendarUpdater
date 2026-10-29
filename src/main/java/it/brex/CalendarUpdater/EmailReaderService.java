@@ -99,7 +99,7 @@ public class EmailReaderService {
                  }
                 
                 // Nome evento
-                stEventName = stArr[0].substring(9);
+                stEventName = stArr[0].substring(9).trim();
                 System.out.println("Evento descrizione: " + stEventName);
                 
                 // Data inizio evento

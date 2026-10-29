@@ -53,6 +53,28 @@ public class CalendarService {
         String endUtc = fine.toInstant().atZone(java.time.ZoneOffset.UTC).format(CALDAV_DATE_FORMATTER);
 
         // Costruzione del body XML per la richiesta REPORT CalDAV (RFC 4791)
+        String xmlQuery = String.format("""
+        	    <?xml version="1.0" encoding="utf-8" ?>
+        	    <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+        	        <D:prop>
+        	            <D:getetag/>
+        	            <C:calendar-data/>
+        	        </D:prop>
+        	        <C:filter>
+        	            <C:comp-filter name="VCALENDAR">
+        	                <C:comp-filter name="VEVENT">
+        	                    <C:time-range start="%s" end="%s"/>
+        	                    <C:prop-filter name="SUMMARY">
+        	                        <C:text-match collation-override="i;ascii-casemap" match-type="contains">%s</C:text-match>
+        	                    </C:prop-filter>
+        	                </C:comp-filter>
+        	            </C:comp-filter>
+        	        </C:filter>
+        	    </C:calendar-query>
+        	    """, startUtc, endUtc, nomeEvento);
+        System.out.println("xmlQuery: " + xmlQuery);
+        
+        /*	SOLO DATE
         String xmlQuery = """
             <?xml version="1.0" encoding="utf-8" ?>
             <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
@@ -69,7 +91,8 @@ public class CalendarService {
                 </C:filter>
             </C:calendar-query>
             """.formatted(startUtc, endUtc);
-
+		*/
+        
         // Esecuzione richiesta HTTP REPORT
         String authHeader = "Basic " + Base64.getEncoder()
                 .encodeToString((configFile.username() + ":" + configFile.password()).getBytes());
@@ -103,7 +126,7 @@ public class CalendarService {
                 for (VEvent vevent : ical.getEvents()) {
 
                 	String uid = vevent.getUid() != null ? vevent.getUid().getValue() : null;
-                    String summary = vevent.getSummary() != null ? vevent.getSummary().getValue() : null;
+                    String summary = vevent.getSummary() != null ? vevent.getSummary().getValue().trim() : null;
                     String description = vevent.getDescription() != null ? vevent.getDescription().getValue() : null;
                     String location = vevent.getLocation() != null ? vevent.getLocation().getValue() : null;
                     String dataInizio = vevent.getDateStart() != null ? vevent.getDateStart().toString() : null;
@@ -116,15 +139,20 @@ public class CalendarService {
                     	System.out.println("---------------------------------");
                     	System.out.println("uid: " + uid);
                     	System.out.println("nomeEvento: " + nomeEvento);
-                    	System.out.println("description: " + description);
+                    	System.out.println("summary: " + summary);
                     	System.out.println("location: " + location);
                     	System.out.println("dataInizio: " + dataInizio);
                     	System.out.println("dataFine: " + dataFine);
                     	System.out.println("sequence: " + curSequence);
                     	System.out.println("---------------------------------");
                     	
-                        if (summary == null || !summary.toLowerCase().contains(nomeEvento.toLowerCase())) {
+                        if ( summary == null ) {
                             continue;
+                        }
+                        
+                        if ( !summary.toLowerCase().contains(nomeEvento.toLowerCase()) &&
+                        		!summary.equalsIgnoreCase(nomeEvento) ) {
+                        	continue;
                         }
                     }
 
